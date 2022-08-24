@@ -2,7 +2,7 @@ import { useCallback, useContext, useMemo, useRef } from "react";
 import { SupabaseContext } from "../SupabaseContext";
 
 export default function Feed() {
-  const { createPost, currentUser, posts, signIn, signOut } = useContext(SupabaseContext);
+  const { createPost, posts } = useContext(SupabaseContext);
   const contentRef = useRef<HTMLInputElement>(null);
   const sortedPosts = useMemo(() => {
     return posts.sort((a, b) => {
@@ -18,7 +18,6 @@ export default function Feed() {
 
   return (
     <div>
-      <h2>Feed</h2>
       <div>
         <h3>Create Post</h3>
         <input type="text" name="content" ref={contentRef} />
