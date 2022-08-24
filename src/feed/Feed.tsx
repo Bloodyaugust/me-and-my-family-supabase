@@ -24,9 +24,6 @@ export default function Feed() {
         {currentUser &&
           <button onClick={() => signOut()}>Sign Out</button>
         }
-        {!currentUser &&
-          <button onClick={() => signIn('greysonrichey@gmail.com')}>Sign In</button>
-        }
       </div>
       <div>
         <h3>Create Post</h3>

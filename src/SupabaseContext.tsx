@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { createContext, useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 type Props = {
   children: JSX.Element,
@@ -45,6 +46,7 @@ export default function SupabaseProvider({ children }: Props) {
   const [posts, setPosts] = useState<Post[]>([]);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
+  const navigate = useNavigate();
 
   async function createPost(content: string) {
     await supabase
@@ -79,6 +81,10 @@ export default function SupabaseProvider({ children }: Props) {
 
     console.log('setting session: ', session);
     setSession(session);
+
+    if (!session) {
+      navigate('/login');
+    }
   }
 
   async function fetchUser() {
