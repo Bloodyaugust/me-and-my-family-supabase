@@ -4,7 +4,7 @@ import styles from './Chat.module.css';
 
 export default function Chat() {
   const { chats, createChat } = useContext(SupabaseContext);
-  const chatRef = useRef<HTMLInputElement>(null);
+  const chatRef = useRef<HTMLTextAreaElement>(null);
 
   return (
     <div className={styles.root}>
@@ -17,7 +17,7 @@ export default function Chat() {
           </div>
         ))}
       </div>
-      <input type="text" name="chat" ref={chatRef} />
+      <textarea className={styles.textarea} name="chat" rows={4} ref={chatRef} />
       <button onClick={() => {
         if (chatRef.current) {
           createChat(chatRef.current.value);

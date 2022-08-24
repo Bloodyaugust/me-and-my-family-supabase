@@ -8,3 +8,7 @@
   height: fill-available;
   padding: 1rem;
 }
+
+.textarea {
+  resize: none;
+}
