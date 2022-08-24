@@ -3,8 +3,9 @@ import { SupabaseContext } from '../SupabaseContext';
 import styles from './Feed.module.css';
 
 export default function Feed() {
-  const { createPost, posts } = useContext(SupabaseContext);
+  const { createPost, images, posts } = useContext(SupabaseContext);
   const contentRef = useRef<HTMLTextAreaElement>(null);
+  const imageRef = useRef<HTMLInputElement>(null);
   const sortedPosts = useMemo(() => {
     return posts.sort((a, b) => {
       return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
@@ -12,11 +13,13 @@ export default function Feed() {
   }, [posts]);
 
   const onPost = useCallback(async () => {
-    if (contentRef.current) {
+    if (contentRef.current && imageRef.current) {
       const postContent: string = contentRef.current.value || '';
+      const files: FileList = imageRef.current.files || new FileList();
 
-      await createPost(postContent);
+      await createPost(postContent, files);
       contentRef.current.value = '';
+      imageRef.current.value = '';
     }
   }, [contentRef, createPost]);
 
@@ -30,7 +33,11 @@ export default function Feed() {
             onPost();
           }
         }} />
-        <button onClick={onPost}>Post</button>
+        <div className={styles.postActions}>
+          <label htmlFor="new-post-images">Add images</label>
+          <input accept="image/*" id="new-post-images" type="file" name="images" multiple ref={imageRef} />
+          <button className={styles.postButton} onClick={onPost}>Post</button>
+        </div>
       </div>
       <hr className={styles.hr} />
       <div className={styles.posts}>
@@ -39,6 +46,11 @@ export default function Feed() {
             <span>{post.user_id} - {post.created_at}</span>
             <hr className={styles.hr} />
             <span>{post.content}</span>
+            <div className={styles.images}>
+              {post.images?.map((image) => (
+                <img alt="From post" className={styles.image} key={image} src={`${images[image]}`} />
+              ))}
+            </div>
           </div>
         ))}
       </div>

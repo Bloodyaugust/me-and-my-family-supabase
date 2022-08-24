@@ -1,6 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { createContext, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { v4 as uuidv4 } from 'uuid';
 
 type Props = {
   children: JSX.Element,
@@ -16,8 +17,10 @@ type Chat = {
 type ContextValue = {
   chats: Chat[],
   createChat: Function,
+  createImages: Function,
   createPost: Function,
   currentUser: User | null,
+  images: { [name: string]: string },
   posts: Post[],
   session: Session | null,
   signIn: Function,
@@ -29,6 +32,7 @@ type Post = {
   created_at: string,
   id: string,
   user_id: string,
+  images?: string[],
 };
 
 type Session = {
@@ -42,13 +46,15 @@ type User = {
 
 export const SupabaseContext = createContext<ContextValue>({
   chats: [],
-  createChat: () => {},
-  createPost: () => {},
+  createChat: () => { },
+  createImages: () => { },
+  createPost: () => { },
   currentUser: null,
+  images: {},
   posts: [],
   session: null,
-  signIn: () => {},
-  signOut: () => {},
+  signIn: () => { },
+  signOut: () => { },
 });
 
 const supabase = createClient(process.env.REACT_APP_SUPABASE_URL || '', process.env.REACT_APP_SUPABASE_KEY || '');
@@ -59,6 +65,7 @@ export default function SupabaseProvider({ children }: Props) {
   const [posts, setPosts] = useState<Post[]>([]);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
+  const [imageCache, setImageCache] = useState({});
   const navigate = useNavigate();
 
   async function createChat(content: string) {
@@ -67,10 +74,47 @@ export default function SupabaseProvider({ children }: Props) {
       .insert([{ content, user_id: currentUser?.id }])
   }
 
-  async function createPost(content: string) {
+  async function createImages(images: FileList) {
+    const newIDs: string[] = [];
+
+    for (let i = 0; i < images.length; i++) {
+      newIDs.push(uuidv4());
+    }
+
+    await supabase
+      .from('images')
+      .insert(newIDs.map(id => ({ id, user_id: currentUser?.id })))
+
+    const results = await Promise.all(newIDs.map((id, i) => {
+      return supabase.storage
+        .from('images')
+        .upload(`${id}.jpg`, images[i])
+    }));
+
+    const imageURLs = await Promise.all(results.map((image => {
+      return supabase.storage
+        .from('images')
+        .createSignedUrl(image.data?.path || '', 60 * 60)
+    })));
+
+    console.log(imageURLs[0])
+    const newImageCache: { [name: string]: string } = {};
+    imageURLs.forEach((image, i) => {
+      newImageCache[newIDs[i]] = image.data?.signedUrl || '';
+    });
+
+    setImageCache(previous => ({ ...previous, ...newImageCache }));
+
+    console.log('image upload results: ', results);
+    return newIDs;
+  }
+
+  async function createPost(content: string, images: FileList) {
+    const ids: string[] = await createImages(images);
+
     await supabase
       .from('posts')
-      .insert([{ content, user_id: currentUser?.id }])
+      .insert([{ content, user_id: currentUser?.id, images: ids, }])
   }
 
   async function fetchChats() {
@@ -197,8 +241,10 @@ export default function SupabaseProvider({ children }: Props) {
     <SupabaseContext.Provider value={{
       chats,
       createChat,
+      createImages,
       createPost,
       currentUser,
+      images: imageCache,
       posts,
       session,
       signIn,
