@@ -6,7 +6,16 @@ type Props = {
   children: JSX.Element,
 };
 
+type Chat = {
+  content: string,
+  created_at: string,
+  id: string,
+  user_id: string,
+}
+
 type ContextValue = {
+  chats: Chat[],
+  createChat: Function,
   createPost: Function,
   currentUser: User | null,
   posts: Post[],
@@ -31,7 +40,9 @@ type User = {
 }
 
 export const SupabaseContext = createContext<ContextValue>({
-  createPost: () => { },
+  chats: [],
+  createChat: () => {},
+  createPost: () => {},
   currentUser: null,
   posts: [],
   session: null,
@@ -43,15 +54,40 @@ const supabase = createClient(process.env.REACT_APP_SUPABASE_URL || '', process.
 
 export default function SupabaseProvider({ children }: Props) {
   const mounts = useRef<number>(0);
+  const [chats, setChats] = useState<Chat[]>([]);
   const [posts, setPosts] = useState<Post[]>([]);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const navigate = useNavigate();
 
+  async function createChat(content: string) {
+    await supabase
+      .from('chats')
+      .insert([{ content, user_id: currentUser?.id }])
+  }
+
   async function createPost(content: string) {
     await supabase
       .from('posts')
       .insert([{ content, user_id: currentUser?.id }])
+  }
+
+  async function fetchChats() {
+    const { data: chats, error } = await supabase.from('chats').select();
+
+    if (error) {
+      console.error(error);
+    }
+
+    setChats(chats || []);
+
+    supabase
+      .channel('public:chats')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chats' }, (payload: any) => {
+        console.log('Change received!', payload);
+        setChats((previous) => [...previous, payload.new]);
+      })
+      .subscribe((e: any, e2: any) => console.log('Subscribed!', e, e2))
   }
 
   async function fetchPosts() {
@@ -123,6 +159,7 @@ export default function SupabaseProvider({ children }: Props) {
     setCurrentUser(null);
     setSession(null);
     setPosts([]);
+    setChats([]);
   }
 
   useEffect(() => {
@@ -141,6 +178,7 @@ export default function SupabaseProvider({ children }: Props) {
         console.log('fetching user from useEffect')
         fetchUser();
         fetchPosts();
+        fetchChats();
       }
     }
 
@@ -156,6 +194,8 @@ export default function SupabaseProvider({ children }: Props) {
 
   return (
     <SupabaseContext.Provider value={{
+      chats,
+      createChat,
       createPost,
       currentUser,
       posts,

@@ -1,4 +1,5 @@
 import { Link, Outlet, useLocation } from 'react-router-dom';
+import Chat from '../chat/Chat';
 import styles from './Main.module.css';
 
 export default function Main() {
@@ -15,6 +16,9 @@ export default function Main() {
       </div>
       <div className={styles.content}>
         <Outlet />
+      </div>
+      <div className={styles.chat}>
+        <Chat />
       </div>
       <footer className={styles.footer}>
         <span>Me and My Family - Made with ❤️ by Greyson Richey</span>

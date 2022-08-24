@@ -1,0 +1,10 @@
+.chats {
+  overflow-y: scroll;
+}
+
+.root {
+  display: grid;
+  grid-template-rows: auto 1fr auto auto;
+  height: fill-available;
+  padding: 1rem;
+}

@@ -1,9 +1,18 @@
+.chat {
+  grid-area: chat;
+}
+
 .content {
   grid-area: content;
+  overflow-y: scroll;
 }
 
 .footer {
+  align-items: end;
+  display: flex;
   grid-area: footer;
+  justify-content: center;
+  padding: 1rem;
 }
 
 .header {
@@ -33,9 +42,9 @@
     "nav header header header"
     "nav content content content"
     "nav content content content"
-    "nav content content content"
-    "nav content content content"
-    "nav footer footer footer"
+    "chat content content content"
+    "chat content content content"
+    "chat footer footer footer"
   ;
   grid-template-columns: repeat(4, 25%);
   grid-template-rows: repeat(6, calc(100vh / 6));
