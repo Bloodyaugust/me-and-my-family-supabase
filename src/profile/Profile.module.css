@@ -1,0 +1,17 @@
+.image {
+  max-height: 5rem;
+  max-width: 5rem;
+}
+
+.images {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(4, 1fr);
+  grid-template-rows: masonry;
+}
+
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}

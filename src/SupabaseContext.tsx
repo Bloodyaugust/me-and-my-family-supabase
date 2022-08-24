@@ -20,12 +20,19 @@ type ContextValue = {
   createImages: Function,
   createPost: Function,
   currentUser: User | null,
+  currentUserImages: string[],
   images: { [name: string]: string },
   posts: Post[],
   session: Session | null,
   signIn: Function,
   signOut: Function,
 };
+
+type Image = {
+  id: string,
+  path: string,
+  user_id: string,
+}
 
 type Post = {
   content: string,
@@ -50,6 +57,7 @@ export const SupabaseContext = createContext<ContextValue>({
   createImages: () => { },
   createPost: () => { },
   currentUser: null,
+  currentUserImages: [],
   images: {},
   posts: [],
   session: null,
@@ -64,9 +72,26 @@ export default function SupabaseProvider({ children }: Props) {
   const [chats, setChats] = useState<Chat[]>([]);
   const [posts, setPosts] = useState<Post[]>([]);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [currentUserImages, setCurrentUserImages] = useState<string[]>([]);
   const [session, setSession] = useState<Session | null>(null);
   const [imageCache, setImageCache] = useState({});
   const navigate = useNavigate();
+
+  async function cacheImages(images: Image[]) {
+    const imageURLs = await Promise.all(images.map((image => {
+      return supabase.storage
+        .from('images')
+        .createSignedUrl(image.path, 60 * 60)
+    })));
+
+    console.log(imageURLs[0])
+    const newImageCache: { [name: string]: string } = {};
+    imageURLs.forEach((image, i) => {
+      newImageCache[images[i].id] = image.data?.signedUrl || '';
+    });
+
+    setImageCache(previous => ({ ...previous, ...newImageCache }));
+  }
 
   async function createChat(content: string) {
     await supabase
@@ -81,31 +106,23 @@ export default function SupabaseProvider({ children }: Props) {
       newIDs.push(uuidv4());
     }
 
-    await supabase
+    const { data, error } = await supabase
       .from('images')
-      .insert(newIDs.map(id => ({ id, user_id: currentUser?.id })))
+      .insert(newIDs.map((id, i) => ({ id, user_id: currentUser?.id, path: `${id}.${images[i].name.split('.')[1]}` })))
+      .select()
 
-    const results = await Promise.all(newIDs.map((id, i) => {
-      return supabase.storage
-        .from('images')
-        .upload(`${id}.jpg`, images[i])
-    }));
+    if (data && !error) {
+      const results = await Promise.all(data.map((image, i) => {
+        return supabase.storage
+          .from('images')
+          .upload(image?.path || '', images[i])
+      }));
 
-    const imageURLs = await Promise.all(results.map((image => {
-      return supabase.storage
-        .from('images')
-        .createSignedUrl(image.data?.path || '', 60 * 60)
-    })));
+      await cacheImages(data)
+  
+      console.log('image upload results: ', results);
+    }
 
-    console.log(imageURLs[0])
-    const newImageCache: { [name: string]: string } = {};
-    imageURLs.forEach((image, i) => {
-      newImageCache[newIDs[i]] = image.data?.signedUrl || '';
-    });
-
-    setImageCache(previous => ({ ...previous, ...newImageCache }));
-
-    console.log('image upload results: ', results);
     return newIDs;
   }
 
@@ -133,6 +150,20 @@ export default function SupabaseProvider({ children }: Props) {
         setChats((previous) => [...previous, payload.new]);
       })
       .subscribe((e: any, e2: any) => console.log('Subscribed!', e, e2))
+  }
+
+  async function fetchCurrentUserImages() {
+    const { data, error } = await supabase
+      .from('images')
+      .select()
+      .eq('user_id', currentUser?.id);
+
+    if (error) {
+      console.error(error);
+    }
+
+    await cacheImages(data || []);
+    setCurrentUserImages(data?.map(image => image.id) || []);
   }
 
   async function fetchPosts() {
@@ -237,6 +268,12 @@ export default function SupabaseProvider({ children }: Props) {
     }
   }, [mounts, session])
 
+  useEffect(() => {
+    if (mounts.current > 1 && currentUser) {
+      fetchCurrentUserImages();
+    }
+  }, [currentUser, posts]);
+
   return (
     <SupabaseContext.Provider value={{
       chats,
@@ -244,6 +281,7 @@ export default function SupabaseProvider({ children }: Props) {
       createImages,
       createPost,
       currentUser,
+      currentUserImages,
       images: imageCache,
       posts,
       session,
