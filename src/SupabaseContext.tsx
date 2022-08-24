@@ -28,6 +28,7 @@ type Post = {
   content: string,
   created_at: string,
   id: string,
+  user_id: string,
 };
 
 type Session = {

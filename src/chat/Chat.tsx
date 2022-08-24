@@ -11,7 +11,10 @@ export default function Chat() {
       <h3>Chat</h3>
       <div className={styles.chats}>
         {chats.map(chat => (
-          <span key={chat.id}>{chat.user_id} - {chat.content}</span>
+          <div className={styles.chat} key={chat.id}>
+            <span>{chat.user_id} - {chat.content}</span>
+            <hr />
+          </div>
         ))}
       </div>
       <input type="text" name="chat" ref={chatRef} />
