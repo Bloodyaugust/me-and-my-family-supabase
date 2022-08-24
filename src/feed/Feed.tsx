@@ -19,12 +19,6 @@ export default function Feed() {
   return (
     <div>
       <h2>Feed</h2>
-      <span>{currentUser?.id} - {currentUser?.email}</span>
-      <div>
-        {currentUser &&
-          <button onClick={() => signOut()}>Sign Out</button>
-        }
-      </div>
       <div>
         <h3>Create Post</h3>
         <input type="text" name="content" ref={contentRef} />
